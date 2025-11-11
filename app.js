@@ -2,7 +2,7 @@
 // POI KONFIGURATION
 // ========================================
 // Hier können Sie Ihre POIs definieren
-// Koordinaten, Namen, Beschreibungen und USDZ-Datei-Pfade
+// Koordinaten, Namen, Beschreibungen und Bild-Pfade
 
 const POIS = [
     {
@@ -11,7 +11,11 @@ const POIS = [
         description: "Historisches Wahrzeichen Berlins",
         lat: 52.5163,
         lon: 13.3777,
-        usdzPath: "ar-models/brandenburger-tor.usdz"
+        // Bild-Konfiguration für AR
+        imagePath: "ar-models/brandenburger-tor.jpg", // Oder verwenden Sie USDZ
+        scale: 10,              // Skalierung des Bildes in AR
+        rotation: 0,            // Rotation in Grad (0-360)
+        opacity: 0.9            // Transparenz (0.0 - 1.0)
     },
     {
         id: 2,
@@ -19,7 +23,10 @@ const POIS = [
         description: "Pariser Wahrzeichen und Aussichtsturm",
         lat: 48.8584,
         lon: 2.2945,
-        usdzPath: "ar-models/eiffelturm.usdz"
+        imagePath: "ar-models/eiffelturm.jpg",
+        scale: 10,
+        rotation: 0,
+        opacity: 0.9
     },
     {
         id: 3,
@@ -27,7 +34,10 @@ const POIS = [
         description: "Symbol der Freiheit in New York",
         lat: 40.6892,
         lon: -74.0445,
-        usdzPath: "ar-models/freiheitsstatue.usdz"
+        imagePath: "ar-models/freiheitsstatue.jpg",
+        scale: 10,
+        rotation: 0,
+        opacity: 0.9
     },
     // Weitere POIs hier hinzufügen...
 ];
@@ -49,20 +59,38 @@ const MAP_CONFIG = {
 };
 
 // ========================================
-// ANWENDUNGS-LOGIK
+// GLOBALE VARIABLEN
 // ========================================
 
 let map;
 let markers = [];
 let currentPOI = null;
+let userPosition = null;
+let arScene = null;
+let arCamera = null;
+let watchId = null;
 
-// Initialisierung beim Laden der Seite
+// View States
+const VIEW_STATE = {
+    MAP: 'map',
+    AR: 'ar'
+};
+let currentView = VIEW_STATE.MAP;
+
+// ========================================
+// INITIALISIERUNG
+// ========================================
+
 document.addEventListener('DOMContentLoaded', function() {
     initMap();
     addPOIMarkers();
     setupEventListeners();
-    checkARSupport();
+    requestLocationPermission();
 });
+
+// ========================================
+// KARTEN-FUNKTIONEN
+// ========================================
 
 // Karte initialisieren
 function initMap() {
@@ -123,9 +151,20 @@ function showPOIInfo(poi) {
     document.getElementById('poi-name').textContent = poi.name;
     document.getElementById('poi-description').textContent = poi.description;
 
-    // AR Button Link setzen
-    const arButton = document.getElementById('ar-button');
-    arButton.href = poi.usdzPath;
+    // Distanz berechnen und anzeigen
+    if (userPosition) {
+        const distance = calculateDistance(
+            userPosition.lat,
+            userPosition.lon,
+            poi.lat,
+            poi.lon
+        );
+        document.getElementById('distance-info').textContent =
+            `Entfernung: ${distance.toFixed(2)} km`;
+    } else {
+        document.getElementById('distance-info').textContent =
+            'GPS-Position wird ermittelt...';
+    }
 
     // Info Panel anzeigen
     document.getElementById('info-panel').classList.remove('hidden');
@@ -143,69 +182,238 @@ function closePOIInfo() {
     currentPOI = null;
 }
 
-// Event Listeners einrichten
+// ========================================
+// AR-FUNKTIONEN
+// ========================================
+
+// AR-Ansicht initialisieren
+function initARView() {
+    if (currentView === VIEW_STATE.AR) return;
+    if (!currentPOI) return;
+
+    showLoading('AR wird initialisiert...');
+
+    // Views wechseln
+    currentView = VIEW_STATE.AR;
+    document.getElementById('map-container').classList.add('hidden');
+    document.getElementById('ar-container').classList.remove('hidden');
+
+    // AR Scene Referenz
+    arScene = document.getElementById('ar-scene');
+
+    // Warte auf A-Frame Initialisierung
+    if (arScene.hasLoaded) {
+        setupARScene();
+    } else {
+        arScene.addEventListener('loaded', setupARScene);
+    }
+}
+
+// AR Scene konfigurieren
+function setupARScene() {
+    hideLoading();
+
+    // Status aktualisieren
+    updateARStatus('AR aktiv - Schauen Sie sich um!');
+
+    // Alle POIs als AR Entities hinzufügen
+    addAREntities();
+
+    // GPS Tracking starten
+    startGPSTracking();
+}
+
+// AR Entities für alle POIs hinzufügen
+function addAREntities() {
+    const entitiesContainer = document.getElementById('poi-entities');
+
+    // Clear existing entities
+    entitiesContainer.innerHTML = '';
+
+    POIS.forEach(poi => {
+        // Erstelle eine Plane für das Bild
+        const entity = document.createElement('a-entity');
+
+        // GPS Position setzen
+        entity.setAttribute('gps-projected-entity-place', {
+            latitude: poi.lat,
+            longitude: poi.lon
+        });
+
+        // Plane mit Bild erstellen
+        const plane = document.createElement('a-plane');
+        plane.setAttribute('src', poi.imagePath);
+        plane.setAttribute('width', poi.scale);
+        plane.setAttribute('height', poi.scale);
+        plane.setAttribute('rotation', `0 ${poi.rotation} 0`);
+        plane.setAttribute('material', {
+            opacity: poi.opacity,
+            transparent: true,
+            side: 'double'
+        });
+
+        // Text Label hinzufügen
+        const text = document.createElement('a-text');
+        text.setAttribute('value', poi.name);
+        text.setAttribute('align', 'center');
+        text.setAttribute('color', '#FFF');
+        text.setAttribute('width', poi.scale * 2);
+        text.setAttribute('position', `0 ${poi.scale/2 + 1} 0`);
+        text.setAttribute('background', '#000');
+        text.setAttribute('opacity', 0.7);
+
+        entity.appendChild(plane);
+        entity.appendChild(text);
+        entitiesContainer.appendChild(entity);
+    });
+
+    console.log(`${POIS.length} AR Entities hinzugefügt`);
+}
+
+// GPS Tracking starten
+function startGPSTracking() {
+    if (watchId !== null) return; // Bereits aktiv
+
+    watchId = navigator.geolocation.watchPosition(
+        (position) => {
+            userPosition = {
+                lat: position.coords.latitude,
+                lon: position.coords.longitude,
+                accuracy: position.coords.accuracy
+            };
+
+            updateGPSStatus(
+                `GPS: ${userPosition.lat.toFixed(6)}, ${userPosition.lon.toFixed(6)}\n` +
+                `Genauigkeit: ${userPosition.accuracy.toFixed(1)}m`
+            );
+        },
+        (error) => {
+            console.error('GPS Error:', error);
+            updateGPSStatus(`GPS Fehler: ${error.message}`);
+        },
+        {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 27000
+        }
+    );
+}
+
+// GPS Tracking stoppen
+function stopGPSTracking() {
+    if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+    }
+}
+
+// AR-Ansicht verlassen
+function exitARView() {
+    if (currentView !== VIEW_STATE.AR) return;
+
+    stopGPSTracking();
+
+    // Views wechseln
+    currentView = VIEW_STATE.MAP;
+    document.getElementById('ar-container').classList.add('hidden');
+    document.getElementById('map-container').classList.remove('hidden');
+
+    // AR Scene pausieren
+    if (arScene) {
+        arScene.pause();
+    }
+}
+
+// ========================================
+// EVENT LISTENERS
+// ========================================
+
 function setupEventListeners() {
     // Close Button
     document.getElementById('close-button').addEventListener('click', closePOIInfo);
 
-    // AR Button - zeigt Loading Indicator
-    document.getElementById('ar-button').addEventListener('click', function(e) {
-        // Überprüfen, ob auf iOS Safari
-        if (!isIOSSafari()) {
-            e.preventDefault();
-            alert('AR Quick Look wird nur auf iOS Safari unterstützt.');
+    // AR Button
+    document.getElementById('ar-button').addEventListener('click', function() {
+        if (!currentPOI) {
+            alert('Bitte wählen Sie einen POI aus.');
             return;
         }
 
-        // Loading Indicator anzeigen
-        showLoading();
-
-        // Loading nach 2 Sekunden ausblenden (AR wird geöffnet)
-        setTimeout(() => {
-            hideLoading();
-        }, 2000);
+        closePOIInfo();
+        initARView();
     });
+
+    // Back to Map Button
+    document.getElementById('back-to-map').addEventListener('click', exitARView);
 }
 
-// Loading Indicator anzeigen
-function showLoading() {
+// ========================================
+// GPS & PERMISSIONS
+// ========================================
+
+function requestLocationPermission() {
+    if ('geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                userPosition = {
+                    lat: position.coords.latitude,
+                    lon: position.coords.longitude,
+                    accuracy: position.coords.accuracy
+                };
+
+                console.log('GPS Position erhalten:', userPosition);
+
+                // Karte zur User-Position zentrieren
+                map.setView([userPosition.lat, userPosition.lon], 12);
+
+                // User Marker hinzufügen
+                L.marker([userPosition.lat, userPosition.lon], {
+                    icon: L.divIcon({
+                        className: 'user-marker',
+                        html: '<div style="background-color: #00C853; border: 3px solid white; border-radius: 50%; width: 20px; height: 20px;"></div>',
+                        iconSize: [20, 20]
+                    })
+                }).addTo(map).bindPopup('Ihr Standort');
+            },
+            (error) => {
+                console.warn('GPS Fehler:', error);
+                alert('GPS-Zugriff verweigert. AR-Funktionen sind eingeschränkt.');
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 0
+            }
+        );
+    } else {
+        alert('Ihr Gerät unterstützt keine Geolocation.');
+    }
+}
+
+// ========================================
+// UI UPDATES
+// ========================================
+
+function showLoading(text = 'Lädt...') {
+    document.getElementById('loading-text').textContent = text;
     document.getElementById('loading').classList.remove('hidden');
 }
 
-// Loading Indicator ausblenden
 function hideLoading() {
     document.getElementById('loading').classList.add('hidden');
 }
 
-// iOS Safari Detection
-function isIOSSafari() {
-    const ua = navigator.userAgent;
-    const iOS = /iPad|iPhone|iPod/.test(ua);
-    const webkit = /WebKit/.test(ua);
-    const iOSSafari = iOS && webkit && !/CriOS|FxiOS|OPiOS|mercury/.test(ua);
-    return iOSSafari;
+function updateARStatus(text) {
+    document.getElementById('ar-status').textContent = text;
 }
 
-// AR Support überprüfen
-function checkARSupport() {
-    if (!isIOSSafari()) {
-        console.warn('Diese Anwendung funktioniert am besten auf iOS Safari mit AR Quick Look Support.');
-    } else {
-        console.log('AR Quick Look wird unterstützt!');
-    }
+function updateGPSStatus(text) {
+    document.getElementById('gps-status').textContent = text;
 }
 
-// Utility: Nähere POIs finden (optional für spätere Features)
-function findNearbyPOIs(lat, lon, radiusKm = 50) {
-    return POIS.filter(poi => {
-        const distance = calculateDistance(lat, lon, poi.lat, poi.lon);
-        return distance <= radiusKm;
-    }).sort((a, b) => {
-        const distA = calculateDistance(lat, lon, a.lat, a.lon);
-        const distB = calculateDistance(lat, lon, b.lat, b.lon);
-        return distA - distB;
-    });
-}
+// ========================================
+// UTILITY FUNKTIONEN
+// ========================================
 
 // Distanz zwischen zwei Koordinaten berechnen (Haversine Formel)
 function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -222,6 +430,18 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 
 function toRad(value) {
     return value * Math.PI / 180;
+}
+
+// Nähere POIs finden (optional für spätere Features)
+function findNearbyPOIs(lat, lon, radiusKm = 50) {
+    return POIS.filter(poi => {
+        const distance = calculateDistance(lat, lon, poi.lat, poi.lon);
+        return distance <= radiusKm;
+    }).sort((a, b) => {
+        const distA = calculateDistance(lat, lon, a.lat, a.lon);
+        const distB = calculateDistance(lat, lon, b.lat, b.lon);
+        return distA - distB;
+    });
 }
 
 // Export für eventuelle Module (optional)

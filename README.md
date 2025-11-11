@@ -1,39 +1,55 @@
 # AR Map POI Viewer
 
-Eine einfache Web-Anwendung für iOS Safari, die Points of Interest (POIs) auf einer OpenStreetMap-Karte anzeigt und AR-Ansichten über AR Quick Look ermöglicht.
+Eine GPS-basierte Web-AR-Anwendung, die Points of Interest (POIs) auf einer OpenStreetMap-Karte anzeigt und diese an vordefinierten GPS-Positionen in Augmented Reality platziert.
 
 ## 🎯 Features
 
 - **OpenStreetMap Integration**: Interaktive Karte mit Leaflet.js
 - **POI Marker**: Anzeige von Points of Interest auf der Karte
-- **AR Quick Look**: Native iOS Safari AR-Integration mit USDZ-Dateien
-- **Responsive Design**: Optimiert für iOS Safari Browser
-- **Konfigurierbar**: Einfache Anpassung von POIs im Source Code
+- **Geolocated AR**: GPS-basierte AR mit AR.js - Objekte erscheinen automatisch an ihren realen GPS-Koordinaten
+- **Echtzeit GPS Tracking**: Kontinuierliche Positionsüberwachung während der AR-Sitzung
+- **Responsive Design**: Optimiert für mobile Browser (iOS Safari, Android Chrome)
+- **Konfigurierbar**: Einfache Anpassung von POIs, Position, Rotation und Transparenz im Source Code
 
 ## 📋 Voraussetzungen
 
-- iOS Gerät (iPhone/iPad) mit iOS 12 oder höher
-- Safari Browser
-- USDZ-Dateien für jeden POI
+- Smartphone mit GPS und Kompass (iPhone, Android)
+- Moderner Browser (iOS Safari 11+, Android Chrome 81+)
+- Kamera- und GPS-Berechtigungen
+- Bilder (JPG/PNG) oder USDZ-Dateien für jeden POI
+- HTTPS-Verbindung (erforderlich für Geolocation und Kamera-Zugriff)
 
 ## 🚀 Installation
 
 1. Projekt klonen oder herunterladen
-2. USDZ-Dateien in den Ordner `ar-models/` legen
+2. Bilder (JPG/PNG) in den Ordner `ar-models/` legen
 3. POIs in der Datei `app.js` konfigurieren
-4. Auf einem Webserver hosten (z.B. GitHub Pages, Netlify, oder lokaler Server)
+4. Auf einem HTTPS-Webserver hosten (erforderlich für GPS & Kamera)
 
-### Lokaler Test:
+### Hosting-Optionen:
+
+**Empfohlen (mit HTTPS):**
+- GitHub Pages (automatisch HTTPS)
+- Netlify (automatisch HTTPS)
+- Vercel (automatisch HTTPS)
+
+**Lokaler Test mit HTTPS:**
 
 ```bash
-# Mit Python 3:
+# Mit Python 3 und OpenSSL:
+# 1. SSL Zertifikat erstellen (einmalig)
+openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 -keyout key.pem -out cert.pem
+
+# 2. HTTPS Server starten
 python3 -m http.server 8000
 
-# Mit Node.js (http-server):
-npx http-server
+# 3. Dann Tunnel-Service verwenden (z.B. ngrok)
+npx ngrok http 8000
 ```
 
-Dann im iOS Safari Browser die URL öffnen (z.B. `http://localhost:8000`)
+**Für Produktion:**
+- Deploy auf GitHub Pages, Netlify oder ähnlichem Service
+- Dann auf dem Smartphone im Browser öffnen
 
 ## ⚙️ Konfiguration
 
@@ -47,13 +63,23 @@ const POIS = [
         id: 1,
         name: "Mein POI Name",
         description: "Beschreibung des POIs",
-        lat: 52.5163,           // Breitengrad
-        lon: 13.3777,           // Längengrad
-        usdzPath: "ar-models/mein-modell.usdz"  // Pfad zur USDZ-Datei
+        lat: 52.5163,                      // Breitengrad (GPS-Koordinate)
+        lon: 13.3777,                      // Längengrad (GPS-Koordinate)
+        imagePath: "ar-models/bild.jpg",   // Pfad zum Bild
+        scale: 10,                         // Größe in AR (Meter)
+        rotation: 0,                       // Rotation in Grad (0-360)
+        opacity: 0.9                       // Transparenz (0.0 - 1.0)
     },
     // Weitere POIs...
 ];
 ```
+
+**Parameter-Erklärung:**
+- `lat`, `lon`: GPS-Koordinaten, wo das Bild in AR erscheinen soll
+- `imagePath`: Pfad zum Bild (JPG, PNG) - wird als Plane in AR angezeigt
+- `scale`: Größe des Bildes in Metern (z.B. 10 = 10x10 Meter)
+- `rotation`: Y-Achsen Rotation in Grad (0° = Norden)
+- `opacity`: Transparenz des Bildes (0.0 = unsichtbar, 1.0 = undurchsichtig)
 
 ### Karten-Einstellungen anpassen
 
@@ -73,67 +99,76 @@ const MAP_CONFIG = {
 
 ```
 zons-arglypiqd/
-├── index.html          # Haupt-HTML-Datei
-├── style.css           # Styling und Layout
-├── app.js              # JavaScript Logik und POI-Konfiguration
-├── ar-models/          # USDZ-Dateien Ordner
+├── index.html          # Haupt-HTML mit Leaflet und AR.js Integration
+├── style.css           # Styling für Karte und AR-Ansicht
+├── app.js              # JavaScript: POI-Konfiguration, Karte, GPS-AR-Logik
+├── ar-models/          # Bilder/Assets für AR-Objekte
 │   ├── .gitkeep
-│   ├── brandenburger-tor.usdz
-│   ├── eiffelturm.usdz
+│   ├── brandenburger-tor.jpg
+│   ├── eiffelturm.jpg
 │   └── ...
 └── README.md           # Diese Datei
 ```
 
-## 🎨 USDZ-Dateien erstellen
+## 🌍 Wie Geolocated AR funktioniert
 
-### Parameter in USDZ-Dateien
+### GPS-basierte Platzierung
 
-Ihre USDZ-Dateien sollten bereits folgende Parameter enthalten:
+Die Anwendung verwendet **AR.js** mit **A-Frame** für GPS-basiertes AR:
 
-- **Position**: Abstand zur Kamera (z-Achse)
-- **Rotation**: Ausrichtung des Objekts (x, y, z Rotation)
-- **Transparenz**: Opacity/Alpha-Wert für das Material
+1. **GPS-Position erfassen**: Die App ermittelt Ihre aktuelle GPS-Position
+2. **POI-Koordinaten**: Jeder POI hat vordefinierte GPS-Koordinaten (lat/lon)
+3. **Automatische Platzierung**: AR-Objekte erscheinen automatisch an ihren GPS-Koordinaten
+4. **Echtzeit-Tracking**: Während Sie sich bewegen, aktualisiert sich die AR-Ansicht
 
-### Empfohlene Tools zum Erstellen/Bearbeiten:
+### Wichtige Hinweise:
 
-1. **Reality Converter** (macOS) - Apple's offizielles Tool
-2. **Blender** mit USD Export Plugin
-3. **Cinema 4D** mit USD Export
-4. **Maya** mit USD Export
+- **Genauigkeit**: GPS-Genauigkeit beträgt typisch 5-20 Meter
+- **Best Practices**:
+  - Verwenden Sie die App im Freien für bessere GPS-Signale
+  - Halten Sie das Gerät stabil für besseres Tracking
+  - Kalibrieren Sie den Kompass bei Bedarf
+- **Reichweite**: AR-Objekte sind sichtbar bis ca. 1-2 km Entfernung
 
-### Beispiel USDZ-Struktur:
+### Bilder vorbereiten:
 
-```python
-# Beispiel: Python USD-Erstellung
-from pxr import Usd, UsdGeom, Gf
+**Empfohlene Bildformate:**
+- JPG oder PNG
+- Auflösung: 1024x1024 oder 2048x2048 px
+- Transparenz: PNG mit Alpha-Kanal für durchsichtige Bereiche
 
-# Stage erstellen
-stage = Usd.Stage.CreateNew('beispiel.usdz')
-
-# Plane für Bild erstellen
-plane = UsdGeom.Mesh.Define(stage, '/Plane')
-
-# Position setzen (2 Meter vor der Kamera)
-xformable = UsdGeom.Xformable(plane)
-xformable.AddTranslateOp().Set(Gf.Vec3f(0, 0, -2))
-
-# Rotation setzen (0°, 0°, 0°)
-xformable.AddRotateXYZOp().Set(Gf.Vec3f(0, 0, 0))
-
-# Material mit Transparenz hinzufügen
-# (Transparenz: 0.0 = durchsichtig, 1.0 = undurchsichtig)
-material = UsdShade.Material.Define(stage, '/Material')
-# ... Material-Setup mit opacity = 0.8
-```
+**Bild-Orientierung:**
+- Bilder werden als vertikale Planes (Ebenen) im 3D-Raum platziert
+- `rotation` Parameter steuert die Ausrichtung (0° = Norden)
+- `scale` Parameter definiert die Größe in Metern
 
 ## 📱 Verwendung
 
-1. **Webseite öffnen** in iOS Safari
-2. **Karte erkunden** und POI-Marker finden
-3. **POI-Marker antippen** um Details zu sehen
-4. **"In AR ansehen" Button** drücken
-5. **AR Quick Look** öffnet sich automatisch
-6. **Platzieren** und **Betrachten** Sie das AR-Objekt
+### Schritt-für-Schritt Anleitung:
+
+1. **Webseite öffnen** auf Ihrem Smartphone (HTTPS erforderlich)
+2. **Berechtigungen erteilen**:
+   - GPS-Zugriff erlauben
+   - Kamera-Zugriff erlauben (für AR)
+3. **Karte erkunden**:
+   - Ihre aktuelle Position wird als grüner Punkt angezeigt
+   - POI-Marker sind als blaue Pins sichtbar
+   - Antippen für Details und Distanz-Anzeige
+4. **AR starten**:
+   - Wählen Sie einen POI aus
+   - Drücken Sie "In AR ansehen"
+5. **AR-Ansicht**:
+   - **Physisch zum POI bewegen**: Die AR-Objekte erscheinen nur an ihren GPS-Koordinaten
+   - **Kamera bewegen**: Schauen Sie sich um, um POIs zu finden
+   - **GPS-Status**: Oben rechts sehen Sie Ihre aktuelle Position
+   - **Zurück zur Karte**: Button oben links
+
+### Tipps für beste Ergebnisse:
+
+- 🌤️ **Im Freien verwenden** für bessere GPS-Genauigkeit
+- 🧭 **Kompass kalibrieren** durch Bewegen des Geräts in einer 8-Form
+- 📍 **In der Nähe eines POI sein** (< 100m) für beste Sichtbarkeit
+- 🔋 **Batterie beachten** - GPS und AR verbrauchen Energie
 
 ## 🛠️ Anpassungen
 
@@ -165,32 +200,59 @@ In `style.css`:
 
 ## 🔍 Fehlerbehebung
 
-### AR funktioniert nicht
+### AR-Kamera startet nicht
 
-- ✅ Stellen Sie sicher, dass Sie iOS Safari verwenden
-- ✅ iOS 12 oder höher erforderlich
-- ✅ USDZ-Dateien müssen korrekt formatiert sein
-- ✅ Überprüfen Sie die Dateipfade in `app.js`
+- ✅ **HTTPS verwenden**: Kamera-Zugriff erfordert HTTPS
+- ✅ **Berechtigungen**: Kamera-Zugriff in Browser-Einstellungen erlauben
+- ✅ **Browser-Support**: Verwenden Sie iOS Safari 11+ oder Android Chrome 81+
+- ✅ **Andere Apps schließen**: Kamera darf nicht von anderer App verwendet werden
 
-### POIs werden nicht angezeigt
+### GPS funktioniert nicht / ungenau
 
-- ✅ Koordinaten überprüfen (lat/lon)
-- ✅ Browser Console auf Fehler prüfen
-- ✅ Zoom-Level anpassen
+- ✅ **GPS-Berechtigung**: Standort-Zugriff in Browser erlauben
+- ✅ **Im Freien**: GPS-Signal ist in Gebäuden schwach
+- ✅ **Kompass kalibrieren**: Gerät in 8-Form bewegen
+- ✅ **Warten**: GPS benötigt 30-60 Sekunden für genaue Position
 
-### USDZ-Dateien laden nicht
+### AR-Objekte nicht sichtbar
 
-- ✅ Dateipfade in `app.js` überprüfen
-- ✅ USDZ-Dateien müssen im `ar-models/` Ordner liegen
-- ✅ Webserver muss USDZ MIME-Type unterstützen: `model/vnd.usdz+zip`
+- ✅ **Distanz prüfen**: Zu weit vom POI entfernt (>1km)
+- ✅ **Kamera bewegen**: Um sich schauen - Objekt könnte hinter Ihnen sein
+- ✅ **GPS-Genauigkeit**: Warten bis GPS < 20m Genauigkeit hat
+- ✅ **Bildpfad prüfen**: Überprüfen Sie `imagePath` in `app.js`
+
+### POIs werden auf Karte nicht angezeigt
+
+- ✅ **Koordinaten**: Lat/Lon korrekt? (lat: -90 bis 90, lon: -180 bis 180)
+- ✅ **Browser Console**: F12 öffnen und Fehlermeldungen prüfen
+- ✅ **Zoom**: Karten-Zoom anpassen
+
+### Bilder laden nicht
+
+- ✅ **Dateipfad**: Pfad in `app.js` korrekt? (relativ zum HTML)
+- ✅ **Datei existiert**: Prüfen Sie `ar-models/` Ordner
+- ✅ **CORS**: Bei externen Bildern CORS-Header beachten
+- ✅ **Dateiformat**: JPG oder PNG verwenden
 
 ## 📚 Weiterführende Ressourcen
 
-- [Apple AR Quick Look Dokumentation](https://developer.apple.com/augmented-reality/quick-look/)
+- [AR.js Dokumentation](https://ar-js-org.github.io/AR.js-Docs/)
+- [A-Frame Dokumentation](https://aframe.io/docs/)
 - [Leaflet.js Dokumentation](https://leafletjs.com/)
 - [OpenStreetMap](https://www.openstreetmap.org/)
-- [USD/USDZ Format](https://graphics.pixar.com/usd/docs/index.html)
-- [Reality Converter](https://developer.apple.com/augmented-reality/tools/)
+- [AR.js Location-Based Tutorial](https://ar-js-org.github.io/AR.js-Docs/location-based/)
+- [Geolocation API (MDN)](https://developer.mozilla.org/en-US/docs/Web/API/Geolocation_API)
+
+## 🎯 Use Cases
+
+Diese AR Map Anwendung eignet sich für:
+
+- **Tourismus**: Historische Informationen an Sehenswürdigkeiten
+- **Stadtführungen**: Virtuelle Touren mit GPS-basierten Inhalten
+- **Bildung**: Interaktive Lernstationen an spezifischen Orten
+- **Events**: Schnitzeljagden, Geocaching-artige Spiele
+- **Museen**: Outdoor-Ausstellungen mit AR-Erweiterungen
+- **Immobilien**: Visualisierung geplanter Gebäude am Standort
 
 ## 📄 Lizenz
 
@@ -202,4 +264,4 @@ Verbesserungsvorschläge und Pull Requests sind willkommen!
 
 ---
 
-**Entwickelt für iOS Safari AR Quick Look**
+**GPS-basiertes Web-AR mit AR.js & A-Frame**

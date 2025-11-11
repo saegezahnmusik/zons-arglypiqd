@@ -186,3 +186,155 @@ body {
         padding-bottom: max(20px, env(safe-area-inset-bottom));
     }
 }
+
+/* ========================================
+   VIEW CONTAINERS
+   ======================================== */
+
+.view-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.view-container.hidden {
+    display: none;
+    opacity: 0;
+}
+
+/* ========================================
+   AR VIEW STYLES
+   ======================================== */
+
+#ar-container {
+    background: #000;
+}
+
+#ar-scene {
+    width: 100%;
+    height: 100%;
+}
+
+/* AR Controls */
+#ar-controls {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+.control-button {
+    pointer-events: auto;
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s, background 0.2s;
+}
+
+.control-button:active {
+    transform: scale(0.95);
+    background: rgba(0, 0, 0, 0.85);
+}
+
+/* AR Info Panel */
+.ar-info-panel {
+    pointer-events: none;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    color: white;
+    border-radius: 12px;
+    padding: 15px 20px;
+    max-width: 250px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.ar-info-panel p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.gps-status {
+    margin-top: 10px !important;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    font-size: 12px !important;
+    color: #aaa;
+}
+
+/* Distance Info */
+.distance-info {
+    color: #007AFF;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+/* AR Button as Button (not link) */
+.ar-button {
+    border: none;
+    cursor: pointer;
+    width: 100%;
+}
+
+/* ========================================
+   A-FRAME OVERRIDES
+   ======================================== */
+
+/* Hide A-Frame UI elements */
+.a-enter-vr-button,
+.a-orientation-modal {
+    display: none !important;
+}
+
+/* A-Frame canvas styling */
+#ar-scene canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* ========================================
+   MOBILE OPTIMIZATIONS
+   ======================================== */
+
+@media (max-width: 768px) {
+    .control-button {
+        top: 15px;
+        left: 15px;
+        padding: 10px 16px;
+        font-size: 14px;
+    }
+
+    .ar-info-panel {
+        top: 15px;
+        right: 15px;
+        padding: 12px 16px;
+        max-width: 200px;
+    }
+
+    .ar-info-panel p {
+        font-size: 13px;
+    }
+
+    .gps-status {
+        font-size: 11px !important;
+    }
+}
