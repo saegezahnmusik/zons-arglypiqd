@@ -82,10 +82,27 @@ let currentView = VIEW_STATE.MAP;
 // ========================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    initMap();
-    addPOIMarkers();
-    setupEventListeners();
-    requestLocationPermission();
+    console.log('=== AR Map POI Viewer Starting ===');
+    console.log('DOMContentLoaded event fired');
+
+    try {
+        initMap();
+        console.log('✓ Map initialized');
+
+        addPOIMarkers();
+        console.log('✓ POI markers added');
+
+        setupEventListeners();
+        console.log('✓ Event listeners set up');
+
+        requestLocationPermission();
+        console.log('✓ Location permission requested');
+
+        console.log('=== Initialization complete ===');
+    } catch (error) {
+        console.error('Initialization error:', error);
+        alert('Fehler beim Initialisieren der Anwendung: ' + error.message);
+    }
 });
 
 // ========================================
@@ -188,9 +205,19 @@ function closePOIInfo() {
 
 // AR-Ansicht initialisieren
 function initARView() {
-    if (currentView === VIEW_STATE.AR) return;
-    if (!currentPOI) return;
+    console.log('initARView called');
 
+    if (currentView === VIEW_STATE.AR) {
+        console.log('AR View already active');
+        return;
+    }
+
+    if (!currentPOI) {
+        console.log('No POI selected');
+        return;
+    }
+
+    console.log('Starting AR View for POI:', currentPOI.name);
     showLoading('AR wird initialisiert...');
 
     // Views wechseln
@@ -200,45 +227,88 @@ function initARView() {
 
     // AR Scene Referenz
     arScene = document.getElementById('ar-scene');
+    console.log('AR Scene element:', arScene);
 
     // Warte auf A-Frame Initialisierung
     if (arScene.hasLoaded) {
+        console.log('A-Frame already loaded, setting up AR scene');
         setupARScene();
     } else {
-        arScene.addEventListener('loaded', setupARScene);
+        console.log('Waiting for A-Frame to load...');
+        arScene.addEventListener('loaded', function() {
+            console.log('A-Frame loaded event fired');
+            setupARScene();
+        });
+
+        // Timeout falls A-Frame nicht lädt
+        setTimeout(() => {
+            if (!arScene.hasLoaded) {
+                console.warn('A-Frame loading timeout - forcing setup');
+                setupARScene();
+            }
+        }, 5000);
     }
 }
 
 // AR Scene konfigurieren
 function setupARScene() {
+    console.log('setupARScene called');
     hideLoading();
 
     // Status aktualisieren
     updateARStatus('AR aktiv - Schauen Sie sich um!');
 
-    // Alle POIs als AR Entities hinzufügen
-    addAREntities();
+    // Kamera-Berechtigung anfordern
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        console.log('Requesting camera permission...');
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                console.log('Camera permission granted');
+                stream.getTracks().forEach(track => track.stop()); // Stop stream immediately
 
-    // GPS Tracking starten
-    startGPSTracking();
+                // Alle POIs als AR Entities hinzufügen
+                addAREntities();
+
+                // GPS Tracking starten
+                startGPSTracking();
+            })
+            .catch(error => {
+                console.error('Camera permission denied:', error);
+                alert('Kamera-Zugriff erforderlich für AR. Bitte erteilen Sie die Berechtigung.');
+                exitARView();
+            });
+    } else {
+        console.log('getUserMedia not supported, proceeding anyway');
+        // Alle POIs als AR Entities hinzufügen
+        addAREntities();
+
+        // GPS Tracking starten
+        startGPSTracking();
+    }
 }
 
 // AR Entities für alle POIs hinzufügen
 function addAREntities() {
+    console.log('addAREntities called');
     const entitiesContainer = document.getElementById('poi-entities');
+
+    if (!entitiesContainer) {
+        console.error('POI entities container not found!');
+        return;
+    }
 
     // Clear existing entities
     entitiesContainer.innerHTML = '';
+    console.log('Adding', POIS.length, 'POIs to AR scene');
 
-    POIS.forEach(poi => {
+    POIS.forEach((poi, index) => {
+        console.log(`Adding POI ${index + 1}:`, poi.name, 'at', poi.lat, poi.lon);
+
         // Erstelle eine Plane für das Bild
         const entity = document.createElement('a-entity');
 
         // GPS Position setzen
-        entity.setAttribute('gps-projected-entity-place', {
-            latitude: poi.lat,
-            longitude: poi.lon
-        });
+        entity.setAttribute('gps-projected-entity-place', `latitude: ${poi.lat}; longitude: ${poi.lon}`);
 
         // Plane mit Bild erstellen
         const plane = document.createElement('a-plane');
@@ -246,11 +316,7 @@ function addAREntities() {
         plane.setAttribute('width', poi.scale);
         plane.setAttribute('height', poi.scale);
         plane.setAttribute('rotation', `0 ${poi.rotation} 0`);
-        plane.setAttribute('material', {
-            opacity: poi.opacity,
-            transparent: true,
-            side: 'double'
-        });
+        plane.setAttribute('material', `opacity: ${poi.opacity}; transparent: true; side: double`);
 
         // Text Label hinzufügen
         const text = document.createElement('a-text');
@@ -265,9 +331,11 @@ function addAREntities() {
         entity.appendChild(plane);
         entity.appendChild(text);
         entitiesContainer.appendChild(entity);
+
+        console.log(`POI ${poi.name} entity added to scene`);
     });
 
-    console.log(`${POIS.length} AR Entities hinzugefügt`);
+    console.log(`✓ ${POIS.length} AR Entities hinzugefügt`);
 }
 
 // GPS Tracking starten
@@ -309,8 +377,14 @@ function stopGPSTracking() {
 
 // AR-Ansicht verlassen
 function exitARView() {
-    if (currentView !== VIEW_STATE.AR) return;
+    console.log('exitARView called');
 
+    if (currentView !== VIEW_STATE.AR) {
+        console.log('Not in AR view, nothing to do');
+        return;
+    }
+
+    console.log('Exiting AR view');
     stopGPSTracking();
 
     // Views wechseln
@@ -321,7 +395,10 @@ function exitARView() {
     // AR Scene pausieren
     if (arScene) {
         arScene.pause();
+        console.log('AR scene paused');
     }
+
+    console.log('✓ Returned to map view');
 }
 
 // ========================================
@@ -329,22 +406,47 @@ function exitARView() {
 // ========================================
 
 function setupEventListeners() {
+    console.log('Setting up event listeners');
+
     // Close Button
-    document.getElementById('close-button').addEventListener('click', closePOIInfo);
+    const closeButton = document.getElementById('close-button');
+    if (closeButton) {
+        closeButton.addEventListener('click', closePOIInfo);
+        console.log('Close button listener added');
+    }
 
     // AR Button
-    document.getElementById('ar-button').addEventListener('click', function() {
-        if (!currentPOI) {
-            alert('Bitte wählen Sie einen POI aus.');
-            return;
-        }
+    const arButton = document.getElementById('ar-button');
+    if (arButton) {
+        arButton.addEventListener('click', function() {
+            console.log('AR Button clicked!');
+            if (!currentPOI) {
+                console.warn('No POI selected');
+                alert('Bitte wählen Sie einen POI aus.');
+                return;
+            }
 
-        closePOIInfo();
-        initARView();
-    });
+            console.log('Closing POI info and starting AR for:', currentPOI.name);
+            closePOIInfo();
+
+            // Kleine Verzögerung um UI-Transition zu erlauben
+            setTimeout(() => {
+                initARView();
+            }, 100);
+        });
+        console.log('AR button listener added');
+    } else {
+        console.error('AR button not found!');
+    }
 
     // Back to Map Button
-    document.getElementById('back-to-map').addEventListener('click', exitARView);
+    const backButton = document.getElementById('back-to-map');
+    if (backButton) {
+        backButton.addEventListener('click', exitARView);
+        console.log('Back to map button listener added');
+    }
+
+    console.log('✓ All event listeners set up');
 }
 
 // ========================================
