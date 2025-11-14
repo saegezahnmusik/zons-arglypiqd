@@ -384,8 +384,10 @@ function setupEventListeners() {
                 return;
             }
 
-            console.log('Closing POI info and starting AR for:', currentPOI.name);
-            closePOIInfo();
+            console.log('Starting AR for:', currentPOI.name);
+
+            // Info Panel schließen ohne currentPOI zu nullen
+            document.getElementById('info-panel').classList.add('hidden');
 
             // Kleine Verzögerung um UI-Transition zu erlauben
             setTimeout(() => {
