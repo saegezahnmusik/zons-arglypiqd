@@ -7,12 +7,12 @@
 const POIS = [
     {
         id: 1,
-        name: "Brandenburger Tor",
-        description: "Historisches Wahrzeichen Berlins",
-        lat: 52.5163,
-        lon: 13.3777,
+        name: "Grünwaldstrasse",
+        description: "Alte Ansicht",
+        lat: 51.120583, 
+        lon: 6.850399,
         // Bild-Konfiguration für AR
-        imagePath: "ar-models/brandenburger-tor.jpg", // Oder verwenden Sie USDZ
+        imagePath: "ar-models/photo1.jpg.jpg", // Oder verwenden Sie USDZ
         scale: 10,              // Skalierung des Bildes in AR
         rotation: 0,            // Rotation in Grad (0-360)
         opacity: 0.9            // Transparenz (0.0 - 1.0)
