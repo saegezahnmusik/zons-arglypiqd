@@ -8,38 +8,14 @@ const POIS = [
     {
         id: 1,
         name: "Grünwaldstrasse",
-        description: "Alte Ansicht",
-        lat: 51.120583, 
+        description: "Grünwaldstrasse Standort",
+        lat: 51.120583,
         lon: 6.850399,
-        // Bild-Konfiguration für AR
-        imagePath: "ar-models/photo1.jpg.jpg", // Oder verwenden Sie USDZ
-        scale: 10,              // Skalierung des Bildes in AR
+        imagePath: "https://scontent-dus1-1.xx.fbcdn.net/v/t39.30808-6/579012269_10240664379335707_8548324744318911677_n.jpg?stp=dst-jpg_p843x403_tt6&_nc_cat=106&ccb=1-7&_nc_sid=aa7b47&_nc_ohc=7C87fs27RAwQ7kNvwEJdEQ5&_nc_oc=AdkJXY9pf3zmprUETgJ54o95aWpOkaRaoordSlYwNMzJK1fFmZuANx3IFxvlIpKgBJ0&_nc_zt=23&_nc_ht=scontent-dus1-1.xx&_nc_gid=-wREL-N1Dy1036kIm79lVw&oh=00_AfjCveAjtyaYJPe23E0FDVapMzA_fJHwfgtoc4XluavWGA&oe=691942F3",
+        scale: 5,               // Kleinere Skalierung für Test
         rotation: 0,            // Rotation in Grad (0-360)
-        opacity: 0.9            // Transparenz (0.0 - 1.0)
-    },
-    {
-        id: 2,
-        name: "Eiffelturm",
-        description: "Pariser Wahrzeichen und Aussichtsturm",
-        lat: 48.8584,
-        lon: 2.2945,
-        imagePath: "ar-models/eiffelturm.jpg",
-        scale: 10,
-        rotation: 0,
-        opacity: 0.9
-    },
-    {
-        id: 3,
-        name: "Freiheitsstatue",
-        description: "Symbol der Freiheit in New York",
-        lat: 40.6892,
-        lon: -74.0445,
-        imagePath: "ar-models/freiheitsstatue.jpg",
-        scale: 10,
-        rotation: 0,
-        opacity: 0.9
-    },
-    // Weitere POIs hier hinzufügen...
+        opacity: 1.0            // Volle Sichtbarkeit
+    }
 ];
 
 // ========================================
@@ -47,11 +23,11 @@ const POIS = [
 // ========================================
 
 const MAP_CONFIG = {
-    // Initiale Karten-Ansicht (Zentrum von Deutschland)
+    // Initiale Karten-Ansicht (Grünwaldstrasse)
     initialView: {
-        lat: 51.1657,
-        lon: 10.4515,
-        zoom: 6
+        lat: 51.120583,
+        lon: 6.850399,
+        zoom: 15
     },
     // Max und Min Zoom Level
     minZoom: 3,
@@ -290,49 +266,31 @@ function setupARScene() {
 // AR Entities für alle POIs hinzufügen
 function addAREntities() {
     console.log('addAREntities called');
-    const entitiesContainer = document.getElementById('poi-entities');
+    const scene = document.querySelector('a-scene');
 
-    if (!entitiesContainer) {
-        console.error('POI entities container not found!');
+    if (!scene) {
+        console.error('A-Frame scene not found!');
         return;
     }
 
-    // Clear existing entities
-    entitiesContainer.innerHTML = '';
     console.log('Adding', POIS.length, 'POIs to AR scene');
 
     POIS.forEach((poi, index) => {
         console.log(`Adding POI ${index + 1}:`, poi.name, 'at', poi.lat, poi.lon);
 
-        // Erstelle eine Plane für das Bild
-        const entity = document.createElement('a-entity');
+        // Erstelle eine Image mit GPS-Entity-Place
+        const image = document.createElement('a-image');
+        image.setAttribute('gps-entity-place', `latitude: ${poi.lat}; longitude: ${poi.lon}`);
+        image.setAttribute('src', poi.imagePath);
+        image.setAttribute('width', poi.scale);
+        image.setAttribute('height', poi.scale);
+        image.setAttribute('rotation', `0 ${poi.rotation} 0`);
+        image.setAttribute('look-at', '[gps-camera]');
+        image.setAttribute('scale', '1 1 1');
 
-        // GPS Position setzen
-        entity.setAttribute('gps-projected-entity-place', `latitude: ${poi.lat}; longitude: ${poi.lon}`);
+        scene.appendChild(image);
 
-        // Plane mit Bild erstellen
-        const plane = document.createElement('a-plane');
-        plane.setAttribute('src', poi.imagePath);
-        plane.setAttribute('width', poi.scale);
-        plane.setAttribute('height', poi.scale);
-        plane.setAttribute('rotation', `0 ${poi.rotation} 0`);
-        plane.setAttribute('material', `opacity: ${poi.opacity}; transparent: true; side: double`);
-
-        // Text Label hinzufügen
-        const text = document.createElement('a-text');
-        text.setAttribute('value', poi.name);
-        text.setAttribute('align', 'center');
-        text.setAttribute('color', '#FFF');
-        text.setAttribute('width', poi.scale * 2);
-        text.setAttribute('position', `0 ${poi.scale/2 + 1} 0`);
-        text.setAttribute('background', '#000');
-        text.setAttribute('opacity', 0.7);
-
-        entity.appendChild(plane);
-        entity.appendChild(text);
-        entitiesContainer.appendChild(entity);
-
-        console.log(`POI ${poi.name} entity added to scene`);
+        console.log(`POI ${poi.name} image added to scene`);
     });
 
     console.log(`✓ ${POIS.length} AR Entities hinzugefügt`);
