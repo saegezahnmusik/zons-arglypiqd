@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AR Map POI Viewer</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin=""/>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Map View -->
+    <div id="map-container" class="view-container">
+        <div id="map"></div>
+
+        <!-- POI Info Panel -->
+        <div id="info-panel" class="hidden">
+            <div id="info-content">
+                <h2 id="poi-name"></h2>
+                <p id="poi-description"></p>
+                <p id="distance-info" class="distance-info"></p>
+                <button id="ar-button" class="ar-button">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z'/%3E%3C/svg%3E" alt="AR Icon" class="ar-icon">
+                    In AR ansehen
+                </button>
+                <button id="close-button" class="close-button">Schließen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AR View -->
+    <div id="ar-container" class="view-container hidden">
+        <!-- AR.js + A-Frame Scene -->
+        <a-scene
+            id="ar-scene"
+            vr-mode-ui="enabled: false"
+            arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false; sourceWidth:1280; sourceHeight:960; displayWidth: 1280; displayHeight: 960;"
+            renderer="antialias: true; alpha: true; precision: medium;"
+            embedded
+            gesture-detector>
+
+            <!-- Camera mit GPS Position -->
+            <a-camera gps-projected-camera rotation-reader></a-camera>
+
+            <!-- POI Entities werden hier dynamisch eingefügt -->
+            <a-entity id="poi-entities"></a-entity>
+        </a-scene>
+
+        <!-- AR Controls -->
+        <div id="ar-controls">
+            <button id="back-to-map" class="control-button">
+                ← Zurück zur Karte
+            </button>
+            <div id="ar-info" class="ar-info-panel">
+                <p id="ar-status">AR wird initialisiert...</p>
+                <p id="gps-status" class="gps-status"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loading" class="hidden">
+        <div class="spinner"></div>
+        <p id="loading-text">Lade AR...</p>
+    </div>
+
+    <!-- A-Frame and AR.js -->
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.5/aframe/build/aframe-ar.js"></script>
+
+    <!-- Leaflet JavaScript -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+
+    <!-- App JavaScript -->
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,340 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+}
+
+#map {
+    height: 100vh;
+    width: 100vw;
+    z-index: 1;
+}
+
+/* Custom POI Marker */
+.poi-marker {
+    background-color: #007AFF;
+    border: 3px solid white;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.poi-marker:hover {
+    transform: scale(1.1);
+}
+
+.poi-marker::before {
+    content: '📍';
+    font-size: 20px;
+}
+
+/* Info Panel */
+#info-panel {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    transition: transform 0.3s ease-in-out;
+    transform: translateY(0);
+    max-height: 50vh;
+    overflow-y: auto;
+}
+
+#info-panel.hidden {
+    transform: translateY(100%);
+}
+
+#info-content {
+    padding: 30px 20px 20px;
+}
+
+#poi-name {
+    color: #333;
+    font-size: 24px;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+#poi-description {
+    color: #666;
+    font-size: 16px;
+    line-height: 1.5;
+    margin-bottom: 20px;
+}
+
+/* AR Button */
+.ar-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: linear-gradient(135deg, #007AFF, #0051D5);
+    color: white;
+    padding: 15px 30px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-size: 18px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+    transition: transform 0.2s, box-shadow 0.2s;
+    margin-bottom: 15px;
+}
+
+.ar-button:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+}
+
+.ar-icon {
+    width: 24px;
+    height: 24px;
+}
+
+/* Close Button */
+.close-button {
+    width: 100%;
+    background: #f0f0f0;
+    color: #333;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.close-button:active {
+    background: #e0e0e0;
+}
+
+/* Loading Indicator */
+#loading {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 30px;
+    border-radius: 16px;
+    text-align: center;
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+#loading.hidden {
+    display: none;
+}
+
+.spinner {
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top: 4px solid white;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Leaflet Popup Custom Styling */
+.leaflet-popup-content-wrapper {
+    border-radius: 12px;
+    padding: 0;
+}
+
+.leaflet-popup-content {
+    margin: 15px;
+    font-size: 14px;
+}
+
+/* iOS Safari Optimizations */
+@supports (-webkit-touch-callout: none) {
+    body {
+        -webkit-user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+}
+
+/* Safe Area for iOS notch */
+@supports (padding: max(0px)) {
+    #info-content {
+        padding-bottom: max(20px, env(safe-area-inset-bottom));
+    }
+}
+
+/* ========================================
+   VIEW CONTAINERS
+   ======================================== */
+
+.view-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.view-container.hidden {
+    display: none;
+    opacity: 0;
+}
+
+/* ========================================
+   AR VIEW STYLES
+   ======================================== */
+
+#ar-container {
+    background: #000;
+}
+
+#ar-scene {
+    width: 100%;
+    height: 100%;
+}
+
+/* AR Controls */
+#ar-controls {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+.control-button {
+    pointer-events: auto;
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s, background 0.2s;
+}
+
+.control-button:active {
+    transform: scale(0.95);
+    background: rgba(0, 0, 0, 0.85);
+}
+
+/* AR Info Panel */
+.ar-info-panel {
+    pointer-events: none;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(10px);
+    color: white;
+    border-radius: 12px;
+    padding: 15px 20px;
+    max-width: 250px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.ar-info-panel p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.gps-status {
+    margin-top: 10px !important;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    font-size: 12px !important;
+    color: #aaa;
+}
+
+/* Distance Info */
+.distance-info {
+    color: #007AFF;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+/* AR Button as Button (not link) */
+.ar-button {
+    border: none;
+    cursor: pointer;
+    width: 100%;
+}
+
+/* ========================================
+   A-FRAME OVERRIDES
+   ======================================== */
+
+/* Hide A-Frame UI elements */
+.a-enter-vr-button,
+.a-orientation-modal {
+    display: none !important;
+}
+
+/* A-Frame canvas styling */
+#ar-scene canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* ========================================
+   MOBILE OPTIMIZATIONS
+   ======================================== */
+
+@media (max-width: 768px) {
+    .control-button {
+        top: 15px;
+        left: 15px;
+        padding: 10px 16px;
+        font-size: 14px;
+    }
+
+    .ar-info-panel {
+        top: 15px;
+        right: 15px;
+        padding: 12px 16px;
+        max-width: 200px;
+    }
+
+    .ar-info-panel p {
+        font-size: 13px;
+    }
+
+    .gps-status {
+        font-size: 11px !important;
+    }
+}
