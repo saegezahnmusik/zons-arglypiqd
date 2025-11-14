@@ -12,7 +12,9 @@ const POIS = [
         lat: 52.5163,
         lon: 13.3777,
         // Bild-Konfiguration für AR
-        imagePath: "ar-models/brandenburger-tor.jpg", // Oder verwenden Sie USDZ
+        // HINWEIS: Fügen Sie hier Ihre eigenen Bilder ein!
+        // Beispiel: imagePath: "ar-models/brandenburger-tor.jpg"
+        imagePath: "https://via.placeholder.com/512/0066FF/FFFFFF?text=Brandenburg+Gate",
         scale: 10,              // Skalierung des Bildes in AR
         rotation: 0,            // Rotation in Grad (0-360)
         opacity: 0.9            // Transparenz (0.0 - 1.0)
@@ -23,7 +25,7 @@ const POIS = [
         description: "Pariser Wahrzeichen und Aussichtsturm",
         lat: 48.8584,
         lon: 2.2945,
-        imagePath: "ar-models/eiffelturm.jpg",
+        imagePath: "https://via.placeholder.com/512/FF6600/FFFFFF?text=Eiffel+Tower",
         scale: 10,
         rotation: 0,
         opacity: 0.9
@@ -34,12 +36,16 @@ const POIS = [
         description: "Symbol der Freiheit in New York",
         lat: 40.6892,
         lon: -74.0445,
-        imagePath: "ar-models/freiheitsstatue.jpg",
+        imagePath: "https://via.placeholder.com/512/00CC66/FFFFFF?text=Statue+of+Liberty",
         scale: 10,
         rotation: 0,
         opacity: 0.9
     },
     // Weitere POIs hier hinzufügen...
+    // WICHTIG: Ersetzen Sie die Platzhalter-URLs durch Ihre eigenen Bilder!
+    // Entweder:
+    // 1. Lokale Bilder: imagePath: "ar-models/mein-bild.jpg"
+    // 2. Online Bilder: imagePath: "https://example.com/bild.jpg"
 ];
 
 // ========================================
